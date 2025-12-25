@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:youtu.be)",
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(ls -la \"D:\\\\Apps\\\\twik\\\\lib\\\\core\\\\models\"\" 2>/dev/null || echo \"Directory does not exist \")"
     ]
   }
 }

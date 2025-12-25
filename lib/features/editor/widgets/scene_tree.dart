@@ -1,14 +1,35 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
-class SceneTree extends StatefulWidget {
-  const SceneTree({super.key});
+import 'package:twik/core/scene/scene.dart';
 
-  @override
-  State<SceneTree> createState() => _SceneTreeState();
-}
+class SceneTree extends StatelessWidget {
+  const SceneTree({
+    super.key,
+    required this.scene,
+    required this.selectedNodeId,
+    required this.onNodeSelected,
+  });
 
-class _SceneTreeState extends State<SceneTree> {
-  int _selectedIndex = 0;
+  final Scene scene;
+  final String? selectedNodeId;
+  final ValueChanged<String?> onNodeSelected;
+
+  IconData _getIconForPrimitive(SdfPrimitive primitive) {
+    switch (primitive) {
+      case SdfPrimitive.sphere:
+        return RadixIcons.boxModel;
+      case SdfPrimitive.box:
+        return RadixIcons.box;
+      case SdfPrimitive.cylinder:
+        return RadixIcons.circle;
+      case SdfPrimitive.triPrism:
+        return RadixIcons.component1;
+      case SdfPrimitive.torus:
+        return RadixIcons.borderDotted;
+      case SdfPrimitive.capsule:
+        return RadixIcons.button;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,16 +46,40 @@ class _SceneTreeState extends State<SceneTree> {
         children: [
           _SectionHeader(title: 'Scene'),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              children: [
-                _SceneItem(
-                  icon: RadixIcons.component1,
-                  label: 'Triangle Prism',
-                  isSelected: _selectedIndex == 0,
-                  onTap: () => setState(() => _selectedIndex = 0),
-                ),
-              ],
+            child: ListenableBuilder(
+              listenable: scene,
+              builder: (context, _) {
+                if (scene.nodes.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No objects',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.mutedForeground,
+                      ),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  itemCount: scene.nodes.length,
+                  itemBuilder: (context, index) {
+                    SdfNode node = scene.nodes[index];
+                    return _SceneItem(
+                      icon: _getIconForPrimitive(node.primitive),
+                      label: node.name,
+                      isSelected: node.id == selectedNodeId,
+                      onTap: () => onNodeSelected(node.id),
+                      onDelete: () {
+                        scene.removeNode(node.id);
+                        if (selectedNodeId == node.id) {
+                          onNodeSelected(null);
+                        }
+                      },
+                    );
+                  },
+                );
+              },
             ),
           ),
           Divider(),
@@ -48,22 +93,50 @@ class _SceneTreeState extends State<SceneTree> {
                 _PrimitiveButton(
                   icon: RadixIcons.boxModel,
                   tooltip: 'Sphere',
-                  onPressed: () {},
+                  onPressed: () {
+                    SdfNode node = scene.addNode(SdfPrimitive.sphere);
+                    onNodeSelected(node.id);
+                  },
                 ),
                 _PrimitiveButton(
                   icon: RadixIcons.box,
                   tooltip: 'Box',
-                  onPressed: () {},
+                  onPressed: () {
+                    SdfNode node = scene.addNode(SdfPrimitive.box);
+                    onNodeSelected(node.id);
+                  },
                 ),
                 _PrimitiveButton(
                   icon: RadixIcons.component1,
-                  tooltip: 'Triangle',
-                  onPressed: () {},
+                  tooltip: 'Triangle Prism',
+                  onPressed: () {
+                    SdfNode node = scene.addNode(SdfPrimitive.triPrism);
+                    onNodeSelected(node.id);
+                  },
                 ),
                 _PrimitiveButton(
                   icon: RadixIcons.circle,
                   tooltip: 'Cylinder',
-                  onPressed: () {},
+                  onPressed: () {
+                    SdfNode node = scene.addNode(SdfPrimitive.cylinder);
+                    onNodeSelected(node.id);
+                  },
+                ),
+                _PrimitiveButton(
+                  icon: RadixIcons.borderDotted,
+                  tooltip: 'Torus',
+                  onPressed: () {
+                    SdfNode node = scene.addNode(SdfPrimitive.torus);
+                    onNodeSelected(node.id);
+                  },
+                ),
+                _PrimitiveButton(
+                  icon: RadixIcons.button,
+                  tooltip: 'Capsule',
+                  onPressed: () {
+                    SdfNode node = scene.addNode(SdfPrimitive.capsule);
+                    onNodeSelected(node.id);
+                  },
                 ),
               ],
             ),
@@ -95,40 +168,62 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _SceneItem extends StatelessWidget {
+class _SceneItem extends StatefulWidget {
   const _SceneItem({
     required this.icon,
     required this.label,
     required this.isSelected,
     required this.onTap,
+    required this.onDelete,
   });
 
   final IconData icon;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  @override
+  State<_SceneItem> createState() => _SceneItemState();
+}
+
+class _SceneItemState extends State<_SceneItem> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        color: isSelected
-            ? Theme.of(context).colorScheme.accent
-            : Colors.transparent,
-        child: Row(
-          children: [
-            Icon(icon, size: 16),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(fontSize: 13),
-                overflow: TextOverflow.ellipsis,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          color: widget.isSelected
+              ? Theme.of(context).colorScheme.accent
+              : Colors.transparent,
+          child: Row(
+            children: [
+              Icon(widget.icon, size: 16),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: TextStyle(fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
+              if (_isHovered || widget.isSelected)
+                GestureDetector(
+                  onTap: widget.onDelete,
+                  child: Icon(
+                    RadixIcons.cross1,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.mutedForeground,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -152,7 +247,6 @@ class _PrimitiveButton extends StatelessWidget {
       tooltip: TooltipContainer(child: Text(tooltip)),
       child: OutlineButton(
         onPressed: onPressed,
-        // size: ButtonSize.sm,
         child: Icon(icon, size: 16),
       ),
     );

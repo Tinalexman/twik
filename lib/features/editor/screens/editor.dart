@@ -1,9 +1,4 @@
-import 'dart:ui';
-
-import 'package:flutter/material.dart';
-import 'package:web/web.dart';
-
-
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 class Editor extends StatefulWidget {
   const Editor({super.key});
@@ -15,6 +10,6 @@ class Editor extends StatefulWidget {
 class _EditorState extends State<Editor> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold();
+    return Scaffold(child: Container());
   }
 }

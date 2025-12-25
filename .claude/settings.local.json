@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:youtu.be)",
+      "Bash(flutter analyze:*)"
+    ]
+  }
+}
